@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#060916">
+  <meta name="description" content="Choose your mission: classic 2D Space Invaders or immersive 3D WebXR VR.">
+  <title>Space Invaders | Choose Your Mission</title>
+  <style>
+    :root { color-scheme: dark; --bg:#060916; --cyan:#00f5ff; --green:#39ff14; --pink:#ff2a85; --text:#edf5ff; --muted:#a3b6cc; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100svh; font-family:system-ui,Segoe UI,Arial,sans-serif; color:var(--text); background:radial-gradient(ellipse at 50% 20%,#182347 0%,var(--bg) 60%); display:grid; place-items:center; overflow-x:hidden; }
+    body::before {content:""; position:fixed; inset:0; pointer-events:none; opacity:.27; background-image:linear-gradient(#59a3eb20 1px,transparent 1px),linear-gradient(90deg,#59a3eb20 1px,transparent 1px);background-size:46px 46px;mask-image:linear-gradient(to bottom,transparent,#000 30%,transparent);}
+    main { width:min(1050px,calc(100% - 36px)); padding:48px 0 64px; position:relative; text-align:center; }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; font-size:.78rem; font-weight:800; letter-spacing:.32em; }
+    h1 { margin:12px 0 10px; font-size:clamp(2.7rem,8vw,5.8rem); letter-spacing:.07em; line-height:1.05; text-shadow:0 0 35px #00f5ff35; }
+    .subtitle {color:var(--muted); font-size:1.08rem; margin:0 auto 40px; max-width:650px; }
+    .choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; text-align:left; }
+    .card {--accent:var(--green); position:relative; display:flex; flex-direction:column; padding:32px; min-height:360px; color:inherit; text-decoration:none; border:1px solid color-mix(in srgb,var(--accent) 43%,transparent); border-radius:22px; background:linear-gradient(150deg,color-mix(in srgb,var(--accent) 11%,#10192c),#0b1020 67%); box-shadow:0 14px 40px #0006; transition:transform .18s,border-color .18s,box-shadow .18s; overflow:hidden;}
+    .card.vr {--accent:var(--cyan);}
+    .card:hover,.card:focus-visible {transform:translateY(-6px);border-color:var(--accent);box-shadow:0 20px 54px color-mix(in srgb,var(--accent) 15%,#0009);outline:none;}
+    .card:focus-visible {outline:3px solid var(--accent);outline-offset:4px;}
+    .symbol {font-size:4rem; line-height:1.2; margin-bottom:22px; filter:drop-shadow(0 0 15px color-mix(in srgb,var(--accent) 42%,transparent));}
+    .tag {display:inline-block; color:var(--accent); font-size:.74rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase;}
+    h2 {font-size:clamp(1.7rem,4vw,2.3rem);margin:10px 0 12px;}
+    .detail {color:var(--muted); line-height:1.6; margin:0 0 28px;}
+    .launch {margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 18px; border:1px solid var(--accent); border-radius:10px; color:var(--accent); font-size:.9rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    footer {color:#7f93ad; font-size:.82rem; margin-top:34px;line-height:1.6;}
+    @media(max-width:700px){main{padding-top:42px}.choices{grid-template-columns:1fr}.card{min-height:300px;padding:25px}.symbol{margin-bottom:12px}}
+    @media(prefers-reduced-motion:reduce){.card{transition:none}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Arcade // Mission Select</div>
+    <h1>SPACE INVADERS</h1>
+    <p class="subtitle">Two ways to defend Earth. Pick your mission and launch into battle.</p>
+    <section class="choices" aria-label="Choose a game mode">
+      <a class="card" href="./space_invaders.html">
+        <div class="symbol" aria-hidden="true">👾</div>
+        <span class="tag">Classic arcade</span>
+        <h2>2D Invasion</h2>
+        <p class="detail">Take on the alien fleet in the classic flat-screen experience. Built for your desktop browser.</p>
+        <span class="launch">Play 2D <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="card vr" href="./space_invaders_vr.html">
+        <div class="symbol" aria-hidden="true">🥽</div>
+        <span class="tag">3D + WebXR</span>
+        <h2>3D / VR Invasion</h2>
+        <p class="detail">Battle the fleet in 3D on your PC, or enter immersive VR with a compatible WebXR headset.</p>
+        <span class="launch">Launch 3D / VR <span aria-hidden="true">↗</span></span>
+      </a>
+    </section>
+    <footer>VR mode requires a compatible headset and a secure HTTPS connection. Both games can be launched from this page.</footer>
+  </main>
+</body>
+</html>
