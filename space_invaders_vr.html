@@ -720,6 +720,8 @@
       });
       ctrl.addEventListener('disconnected', () => {
         ctrl.userData.gamepad = null;
+       ctrl.userData.triggerWasPressed = false;
+       ctrl.userData.snapCooldown = 0;
       });
 
       // Fallback selectstart event for trigger fire
@@ -1382,14 +1384,16 @@
         const gp = ctrl.userData.gamepad;
         if (!gp) continue;
 
-        // Trigger button (buttons[0]) -> Rapid Fire
-        if (gp.buttons[0] && gp.buttons[0].pressed) {
+        // Trigger button (buttons[0]) -> Fire (edge-triggered so it doesn't spam every frame)
+        const triggerPressed = !!(gp.buttons[0] && gp.buttons[0].pressed);
+        if (triggerPressed && !ctrl.userData.triggerWasPressed) {
           if (gameState === 'GAME_OVER') {
             if (stateTimer <= 0) startNewGame();
           } else {
             fireFromController(ctrl);
           }
         }
+        ctrl.userData.triggerWasPressed = triggerPressed;
 
         // Grip / Squeeze button (buttons[1]) -> Deploy Wrist Energy Shield
         const gripPressed = gp.buttons[1] && gp.buttons[1].pressed;
@@ -1398,11 +1402,28 @@
           ctrl.userData.gunMesh.userData.shieldMesh.visible = Boolean(gripPressed);
         }
 
-        // Thumbstick X-axis (axes[2] on Quest Touch) -> Strafe Command Platform
-        const stickX = gp.axes.length > 2 ? gp.axes[2] : (gp.axes[0] || 0);
-        if (Math.abs(stickX) > 0.18) {
-          playerRig.position.x += stickX * 6.5 * dt;
-          playerRig.position.x = Math.max(-7.5, Math.min(7.5, playerRig.position.x));
+        const handedness = ctrl.userData.handedness || (i === 0 ? 'left' : 'right');
+        let stickX = 0;
+        if (gp.axes && gp.axes.length) {
+          const a0 = gp.axes[0] || 0;
+          const a2 = gp.axes.length > 2 ? (gp.axes[2] || 0) : 0;
+          stickX = Math.abs(a2) > Math.abs(a0) ? a2 : a0;
+        }
+        if (Math.abs(stickX) < 0.15) stickX = 0;
+
+        if (handedness === 'left' || i === 0) {
+          // Left stick -> strafe
+          if (Math.abs(stickX) > 0.18) {
+            playerRig.position.x += stickX * 6.5 * dt;
+            playerRig.position.x = Math.max(-7.5, Math.min(7.5, playerRig.position.x));
+          }
+        } else {
+          // Right stick -> snap turn (comfort)
+          if (Math.abs(stickX) > 0.6 && (ctrl.userData.snapCooldown || 0) <= 0) {
+            playerRig.rotation.y -= Math.sign(stickX) * (Math.PI / 8);
+            ctrl.userData.snapCooldown = 0.35;
+          }
+          if (ctrl.userData.snapCooldown > 0) ctrl.userData.snapCooldown -= dt;
         }
       }
     }
