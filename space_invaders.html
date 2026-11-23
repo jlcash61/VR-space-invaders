@@ -473,6 +473,23 @@
           osc.stop(now + 0.09);
         }
 
+        playDive() {
+          if (!this.enabled) return;
+          this.init();
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1150, now);
+          osc.frequency.exponentialRampToValueAtTime(180, now + 0.35);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+          osc.connect(gain);
+          gain.connect(this.masterGain);
+          osc.start(now);
+          osc.stop(now + 0.36);
+        }
+
         playUfoBeep(phase) {
           if (!this.enabled) return;
           this.init();
@@ -673,6 +690,14 @@
       let ufoBeepTimer = 0;
       let stateTimer = 0;
 
+      // Galaga-style assault stage (every 3rd wave)
+      let galagaWave = false;
+      let galagaState = 'ENTRY'; // ENTRY, FORMATION
+      let galagaStageTime = 0;
+      let galagaBreath = 0;
+      let galagaDiveTimer = 0;
+      let galagaAnimTimer = 0;
+
       // Input state
       const keys = {
         left: false,
@@ -697,6 +722,13 @@
         alienStepTimer = 0;
         enemyBombs = [];
         player.laser = null;
+
+        // Every 3rd wave is a Galaga-style assault stage
+        galagaWave = waveNum % 3 === 0;
+        if (galagaWave) {
+          createGalagaWave(waveNum);
+          return;
+        }
 
         const rows = 5;
         const cols = 11;
@@ -744,10 +776,252 @@
         }
       }
 
+      // ==========================================
+      // GALAGA-STYLE ASSAULT STAGE (EVERY 3RD WAVE)
+      // ==========================================
+      // Squadrons fly in along Bézier curves, the formed grid "breathes"
+      // instead of marching, and enemies periodically dive at the player,
+      // fire mid-dive, exit the screen and re-enter from the top.
+      const galagaFcX = 64 + (10 * 46) / 2 + 18; // matches createWave formation geometry
+      const galagaFcY = 130 + 2 * 38 + 12;
+
+      function bezPoint(p0, p1, p2, p3, t) {
+        const u = 1 - t;
+        const a = u * u * u;
+        const b = 3 * u * u * t;
+        const c = 3 * u * t * t;
+        const d = t * t * t;
+        return {
+          x: a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+          y: a * p0.y + b * p1.y + c * p2.y + d * p3.y
+        };
+      }
+
+      function galagaFormationPos(a) {
+        const s = 1 + 0.09 * Math.sin(galagaBreath);
+        return {
+          x: galagaFcX + (a.fx + a.w / 2 - galagaFcX) * s - a.w / 2,
+          y: galagaFcY + (a.fy + a.h / 2 - galagaFcY) * s - a.h / 2
+        };
+      }
+
+      function createGalagaWave(waveNum) {
+        galagaState = 'ENTRY';
+        galagaStageTime = 0;
+        galagaBreath = 0;
+        galagaDiveTimer = 3.0;
+        galagaAnimTimer = 0;
+
+        const rows = 5;
+        const cols = 11;
+        const cellW = 46;
+        const cellH = 38;
+        const startX = 64;
+        const startY = 130;
+
+        for (let r = 0; r < rows; r++) {
+          let type = 'octopus';
+          let points = 10;
+          let color = '#00f5ff';
+          let spriteW = 12 * SCALE;
+
+          if (r === 0) {
+            type = 'squid';
+            points = 30;
+            color = '#ff2a85';
+            spriteW = 8 * SCALE;
+          } else if (r === 1 || r === 2) {
+            type = 'crab';
+            points = 20;
+            color = '#ffb800';
+            spriteW = 11 * SCALE;
+          }
+
+          const fromLeft = r % 2 === 0;
+
+          for (let c = 0; c < cols; c++) {
+            const xOffset = (12 * SCALE - spriteW) / 2;
+            const fx = startX + c * cellW + xOffset;
+            const fy = startY + r * cellH;
+
+            // Entry path: sweeping off-screen curve that glides into the slot
+            const entryPath = fromLeft
+              ? [
+                  { x: -50, y: 150 },
+                  { x: W * 0.30, y: 40 },
+                  { x: W * 0.72, y: 300 },
+                  { x: fx, y: fy }
+                ]
+              : [
+                  { x: W + 50, y: 150 },
+                  { x: W * 0.70, y: 40 },
+                  { x: W * 0.28, y: 300 },
+                  { x: fx, y: fy }
+                ];
+
+            aliens.push({
+              row: r,
+              col: c,
+              type,
+              points,
+              color,
+              x: entryPath[0].x,
+              y: entryPath[0].y,
+              w: spriteW,
+              h: 8 * SCALE,
+              alive: true,
+              dyingTimer: 0,
+              state: 'entry', // entry, formation, diving, reentry
+              fx,
+              fy,
+              entryPath,
+              entryDelay: r * 1.15 + c * 0.09,
+              entryDur: 2.3,
+              diveT: 0,
+              diveDur: 3,
+              divePath: null,
+              diveShots: 0,
+              diveShotTimer: 0,
+              reentryT: 0
+            });
+          }
+        }
+
+        floatingTexts.push({
+          x: W / 2,
+          y: 330,
+          text: 'GALAGA SQUADRON INBOUND!',
+          color: '#ff2a85',
+          timer: 2.4
+        });
+      }
+
+      function launchGalagaDivers() {
+        const candidates = aliens.filter(a => a.alive && a.state === 'formation');
+        if (candidates.length === 0) return;
+        const maxDivers = Math.min(3, 1 + Math.floor((wave - 3) / 3));
+        const count = Math.min(maxDivers, 1 + Math.floor(Math.random() * 2));
+        const playerCx = player.x + player.w / 2;
+
+        for (let i = 0; i < count && candidates.length > 0; i++) {
+          const a = candidates.splice(Math.floor(Math.random() * candidates.length), 1)[0];
+          const dir = a.x < W / 2 ? 1 : -1;
+          a.state = 'diving';
+          a.diveT = 0;
+          a.diveDur = 2.6 + Math.random() * 0.9;
+          a.diveShots = wave >= 6 ? 3 : 2;
+          a.diveShotTimer = 0.45;
+          a.divePath = [
+            { x: a.x, y: a.y },
+            { x: a.x + dir * 130, y: a.y + 70 },
+            { x: playerCx + (Math.random() - 0.5) * 140, y: player.y - 80 },
+            { x: playerCx + dir * 90, y: H + 70 }
+          ];
+          sound.playDive();
+        }
+      }
+
+      function updateGalagaStage(dt) {
+        galagaStageTime += dt;
+
+        // Sprite flap animation while flying
+        galagaAnimTimer += dt;
+        if (galagaAnimTimer >= 0.22) {
+          galagaAnimTimer = 0;
+          alienAnimFrame = 1 - alienAnimFrame;
+        }
+
+        const aliveAliens = aliens.filter(a => a.alive);
+        let allFormed = true;
+
+        for (const a of aliveAliens) {
+          if (a.state === 'entry') {
+            const t = Math.min(1, Math.max(0, (galagaStageTime - a.entryDelay) / a.entryDur));
+            const p = bezPoint(a.entryPath[0], a.entryPath[1], a.entryPath[2], a.entryPath[3], t);
+            a.x = p.x;
+            a.y = p.y;
+            if (t >= 1) a.state = 'formation'; else allFormed = false;
+          } else if (a.state === 'formation') {
+            const p = galagaFormationPos(a);
+            a.x = p.x;
+            a.y = p.y;
+          } else if (a.state === 'diving') {
+            allFormed = false;
+            a.diveT = Math.min(1, a.diveT + dt / a.diveDur);
+            const p = bezPoint(a.divePath[0], a.divePath[1], a.divePath[2], a.divePath[3], a.diveT);
+            a.x = p.x;
+            a.y = p.y;
+
+            // Fire during the dive
+            a.diveShotTimer -= dt;
+            if (a.diveShotTimer <= 0 && a.diveShots > 0 && a.diveT < 0.8) {
+              a.diveShots--;
+              a.diveShotTimer = 0.5;
+              enemyBombs.push({
+                x: a.x + a.w / 2 - 3,
+                y: a.y + a.h,
+                w: 6,
+                h: 15,
+                type: 'squiggly',
+                speed: 250,
+                animTime: 0
+              });
+            }
+
+            // Divers collide with the player, Galaga-style
+            if (
+              a.x < player.x + player.w &&
+              a.x + a.w > player.x &&
+              a.y < player.y + player.h &&
+              a.y + a.h > player.y
+            ) {
+              enemyBombs = [];
+              lives--;
+              sound.playPlayerDeath();
+              spawnExplosion(player.x + player.w / 2, player.y + player.h / 2, '#39ff14', 42);
+              gameState = STATE.PLAYER_DYING;
+              player.respawnTimer = 1.4;
+              return;
+            }
+
+            if (a.diveT >= 1) {
+              a.state = 'reentry';
+              a.reentryT = 0;
+            }
+          } else if (a.state === 'reentry') {
+            allFormed = false;
+            a.reentryT = Math.min(1, a.reentryT + dt / 1.5);
+            const slot = galagaFormationPos(a);
+            const e = a.reentryT * a.reentryT * (3 - 2 * a.reentryT);
+            a.x = slot.x;
+            a.y = -60 + (slot.y + 60) * e;
+            if (a.reentryT >= 1) a.state = 'formation';
+          }
+        }
+
+        if (galagaState === 'ENTRY' && allFormed) {
+          galagaState = 'FORMATION';
+        }
+
+        if (galagaState === 'FORMATION') {
+          galagaBreath += dt * 2.2;
+
+          // Schedule dive attacks
+          galagaDiveTimer -= dt;
+          if (galagaDiveTimer <= 0) {
+            launchGalagaDivers();
+            galagaDiveTimer = Math.max(1.3, 3.4 - wave * 0.12) + Math.random();
+          }
+        }
+      }
+
       function startNewGame() {
         sound.init();
         score = 0;
         wave = 1;
+        // Debug/testing: ?wave=N jumps straight to a chosen wave
+        const urlWave = parseInt(new URLSearchParams(location.search).get('wave'), 10);
+        if (urlWave >= 1) wave = urlWave;
         lives = 3;
         bonusLifeAwarded = false;
         shotsFiredCount = 0;
@@ -994,8 +1268,12 @@
           return;
         }
 
-        // Dynamic march cadence: speeds up nonlinearly as aliens are destroyed
         const ratio = aliveAliens.length / 55;
+
+        if (galagaWave) {
+          updateGalagaStage(dt);
+        } else {
+        // Dynamic march cadence: speeds up nonlinearly as aliens are destroyed
         const stepInterval = Math.max(0.038, 0.04 + Math.pow(ratio, 1.35) * 0.68);
         const stepPixels = aliveAliens.length === 1 ? 11 : 7;
 
@@ -1070,6 +1348,7 @@
             ufo = null;
           }
         }
+        }
 
         // Player Laser Update & Collisions
         if (player.laser) {
@@ -1124,7 +1403,8 @@
               ) {
                 a.alive = false;
                 a.dyingTimer = 0.22;
-                addScore(a.points);
+                // Galaga rule: enemies caught in flight are worth double
+                addScore(galagaWave && a.state !== 'formation' ? a.points * 2 : a.points);
                 sound.playAlienHit();
                 spawnExplosion(a.x + a.w / 2, a.y + a.h / 2, a.color, 18);
                 laserConsumed = true;
@@ -1167,13 +1447,19 @@
         const fireCooldown = Math.max(0.32, 0.95 - wave * 0.07 - (1 - ratio) * 0.35);
         const maxBombs = Math.min(5, 3 + Math.floor(wave / 2));
 
-        if (alienShootTimer >= fireCooldown && enemyBombs.length < maxBombs) {
+        if (
+          alienShootTimer >= fireCooldown &&
+          enemyBombs.length < maxBombs &&
+          (!galagaWave || galagaState === 'FORMATION')
+        ) {
           alienShootTimer = 0;
 
-          // Collect bottom-most alive alien per column
+          // Collect bottom-most alive alien per column (Galaga: formed aliens only)
           const shooters = [];
           for (let c = 0; c < 11; c++) {
-            const colAliens = aliveAliens.filter(a => a.col === c);
+            const colAliens = aliveAliens.filter(
+              a => a.col === c && (!galagaWave || a.state === 'formation')
+            );
             if (colAliens.length > 0) {
               colAliens.sort((a, b) => b.y - a.y);
               shooters.push(colAliens[0]);
@@ -1291,9 +1577,9 @@
 
         ctx.textAlign = 'right';
         ctx.fillStyle = '#8ea0c8';
-        ctx.fillText('WAVE', W - 28, 28);
-        ctx.fillStyle = '#00f5ff';
-        ctx.fillText(String(wave).padStart(2, '0'), W - 28, 50);
+        ctx.fillText(galagaWave ? 'STAGE' : 'WAVE', W - 28, 28);
+        ctx.fillStyle = galagaWave ? '#ff2a85' : '#00f5ff';
+        ctx.fillText(galagaWave ? 'GALAGA' : String(wave).padStart(2, '0'), W - 28, 50);
 
         // Bottom green ground baseline
         ctx.fillStyle = '#39ff14';
@@ -1440,7 +1726,7 @@
           ctx.textAlign = 'center';
           ctx.font = 'bold 30px "Courier New", monospace';
           ctx.fillStyle = '#00f5ff';
-          ctx.fillText(`WAVE ${wave} CLEARED!`, W / 2, H / 2 + 10);
+          ctx.fillText(galagaWave ? 'GALAGA STAGE CLEARED!' : `WAVE ${wave} CLEARED!`, W / 2, H / 2 + 10);
         } else if (gameState === STATE.GAME_OVER) {
           ctx.fillStyle = 'rgba(3, 4, 8, 0.78)';
           ctx.fillRect(0, H / 2 - 75, W, 150);
