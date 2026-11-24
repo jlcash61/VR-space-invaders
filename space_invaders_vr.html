@@ -655,13 +655,8 @@
       addBox(0.66, 0.85, 0.12, 0, 1.75, 0.47, seatMat, -0.06); // seat back
       addBox(0.30, 0.20, 0.10, 0, 1.82, 0.52, seatMat, -0.06); // headrest
 
-      // Cockpit tub side walls (enclosed carrier feel)
-      addBox(0.10, 0.60, 1.30, -0.60, 1.28, -0.10, hullMat);
-      addBox(0.10, 0.60, 1.30, 0.60, 1.28, -0.10, hullMat);
-
-      // Dashboard across the bottom of the view
-      addBox(1.34, 0.12, 0.42, 0, 1.27, -0.64, hullMat, 0.18);
-      addBox(1.34, 0.025, 0.05, 0, 1.345, -0.55, trimMat, 0.18); // neon trim strip
+      // (Open cockpit: no tub walls, no dashboard slab, no skirt —
+      //  the enclosure felt caged in VR playtesting.)
 
       // Armrest consoles the turret blasters hover over
       addBox(0.28, 0.12, 0.34, -0.35, 1.30, -0.40, hullMat);
@@ -686,9 +681,8 @@
       addBox(0.19, 0.035, 0.03, -0.17, 1.455, -0.32, trimMat);
       addBox(0.19, 0.035, 0.03, 0.17, 1.455, -0.32, trimMat);
 
-      // Footrest plate + front skirt so the footwell reads as solid
+      // Footrest plate (front skirt removed — open cockpit)
       addBox(0.60, 0.05, 0.32, 0, 1.00, -0.78, hullMat);
-      addBox(1.30, 0.50, 0.06, 0, 0.76, -0.80, hullMat);
     }
 
     // Desktop-only virtual hands holding the turret remotes (hidden in VR,
@@ -732,7 +726,10 @@
     camera.add(desktopHandR);
 
     // ========================================================
-    // HOLO STATUS CARD (bottom-right of view, rides with cockpit)
+    // HOLO STATUS CARD — console-anchored, NOT head-locked.
+    // Stays put when the headset moves (only travels with strafe).
+    // Sits low-left on the deck, angled up at the pilot: visible on a
+    // glance down-left, out of the way of normal sight-lines.
     // ========================================================
     const cardCanvas = document.createElement('canvas');
     cardCanvas.width = 256;
@@ -740,12 +737,12 @@
     const cardCtx = cardCanvas.getContext('2d');
     const cardTexture = new THREE.CanvasTexture(cardCanvas);
     const statusCard = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.26, 0.146),
+      new THREE.PlaneGeometry(0.24, 0.135),
       new THREE.MeshBasicMaterial({ map: cardTexture, transparent: true, side: THREE.DoubleSide })
     );
-    statusCard.position.set(0.42, -0.33, -0.82);
-    statusCard.rotation.set(-0.10, -0.16, 0);
-    camera.add(statusCard);
+    statusCard.position.set(-0.52, 1.04, -0.68);
+    statusCard.rotation.set(-0.72, 0.55, 0);
+    cockpit.add(statusCard);
 
     function updateStatusCard() {
       const w = cardCanvas.width, h = cardCanvas.height;
@@ -806,19 +803,11 @@
       cardTexture.needsUpdate = true;
     }
 
-    // Carrier banking + desktop hand life
-    let rigPrevX = 0;
-    let rigBankTilt = 0;
+    // Carrier dynamics: NO rig/view tilt (banking felt bad in VR playtesting —
+    // head-locked rotation is a comfort violation). Only desktop hand life here.
     let desktopHandKick = 0;
 
     function updateCockpitDynamics(dt) {
-      // Bank the whole carrier into strafes
-      const vx = dt > 0 ? (playerRig.position.x - rigPrevX) / dt : 0;
-      rigPrevX = playerRig.position.x;
-      const targetTilt = THREE.MathUtils.clamp(-vx * 0.010, -0.07, 0.07);
-      rigBankTilt += (targetTilt - rigBankTilt) * Math.min(1, dt * 6);
-      playerRig.rotation.z = rigBankTilt;
-
       // Virtual hands: idle sway, recoil kick on fire, lean with strafe
       desktopHandKick = Math.max(0, desktopHandKick - dt * 0.25);
       if (!renderer.xr.isPresenting) {
@@ -2526,7 +2515,7 @@
     function updateGame(dt) {
       desktopCooldown = Math.max(0, desktopCooldown - dt);
 
-      // Carrier banking when strafing + desktop hand animation + status card
+      // Desktop hand animation + status card refresh
       updateCockpitDynamics(dt);
       updateStatusCard();
 

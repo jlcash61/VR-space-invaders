@@ -93,15 +93,24 @@ Last updated: 2026-11-23 (Scene 1 + drone economy + Galaga/challenge stages)
 
 ---
 
-## KNOWN ISSUES / TUNING CANDIDATES  (user: "some things to fix" — list TBD next session)
+## KNOWN ISSUES / TUNING CANDIDATES
 
+### VR playtest #1 feedback (2026-11-23, user's first real headset session) — ADDRESSED:
+- "Caged" feeling from the cockpit enclosure → REMOVED tub walls, dashboard slab, and front
+  skirt. Kept: low seat/back, strapped-in legs + straps, armrest consoles, footrest.
+- View/port tilting when strafing (carrier banking) → REMOVED entirely. Rule learned:
+  never rotate the rig/camera for style in VR — comfort killer.
+- Status card head-locked = distracting → RE-ANCHORED to the carrier: small console panel
+  on the deck, low-left, angled up at the pilot (-0.52, 1.04, -0.68, rot -0.72/0.55).
+  Iterate placement/size based on next playtest.
+
+### Still open:
 - Beam-attack frequency, dive aggression, and drone orbit placement are untuned for a
   brand-new VR player — expect feedback here.
 - Shots freeze during the GAME_OVER screen (deliberate dramatic pause, same as arcade).
   Wave-clear lets stray shots fly out instead (fixed this session).
 - Unused power-ups persist across wave transitions (harmless drift).
 - 2D: dual-fighter death shows a single wreck (cosmetic).
-- 2D capture costs no life; VR capture used to cost a life — now costs the drone instead.
 
 ## PARKED IDEAS (not built)
 
