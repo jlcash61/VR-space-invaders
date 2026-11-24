@@ -105,6 +105,24 @@ Last updated: 2026-11-23 (Scene 1 + drone economy + Galaga/challenge stages)
 
 ## PARKED IDEAS (not built)
 
+- **TRANSFORMATIONS (the big one — user's core vision, 2026-11-23):** The game is an
+  escalation story. Working title: **"INVADERS FROM SPACE"** (italic, angled font; possible
+  tagline "THEY'RE CHANGING."). Enemies visibly evolve across tiers, and the player evolves
+  in parallel (turrets → shields → drones → command).
+  - Tier ladder (~1 tier per 2 waves): (1) classic marchers → (2) THE TRANSFORMATION MOMENT:
+    one invader breaks formation mid-wave and VISIBLY unfolds wings / ignites engines while
+    diving; afterwards some spawn pre-evolved as Fighters (dive + bank + fire) → (3) Bombers
+    (slow, tanky, heavy shots, flanking) → (4) Interceptors (fast feint dives) → (5) Command
+    Ship (large, coordinates pincer dives from both flanks, possibly shielded) → (6+) full
+    combined squadrons with complementary patterns.
+  - The morph is shown IN GAMEPLAY, never told: VR = hidden wing/engine voxel clusters that
+    scale/rotate in over ~1.5s + emissive engine glow while the alien exits formation;
+    2D = mid-morph sprite (invader silhouette + sprouting wing/flame pixels) crossfading
+    into the Fighter sprite.
+  - Rename pass needed: page titles, landing page, both title screens, holo marquee →
+    "INVADERS FROM SPACE."
+  - Player mirror ladder: two turrets → wrist shields → earned drones (BUILT) → power-ups
+    (BUILT) → drone commands (parked, see below).
 - Drone commands: spend shield-bar charge to send a drone at your aim point (hand bars as
   drone remotes — user liked this direction).
 - More achievements: perfect challenge, drone recoveries, multi-kill dives (card already
