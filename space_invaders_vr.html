@@ -216,7 +216,7 @@
           <div>SCORE: <span id="uiScore" class="val">00000</span></div>
           <div>HI-SCORE: <span id="uiHigh" class="val" style="color:#ffb800">01500</span></div>
           <div>WAVE: <span id="uiWave" class="val">01</span></div>
-          <div>SHIELDS/LIVES: <span id="uiLives" class="val" style="color:#39ff14">♥♥♥</span></div>
+          <div>HULL: <span id="uiLives" class="val" style="color:#39ff14">♥♥♥</span></div>
         </div>
       </div>
 
@@ -313,6 +313,80 @@
         "1111111111111111",
         "0011100110011100",
         "0001000000001000"
+      ],
+      // Galaga roster: Bee - 50 pts
+      bee1: [
+        "0001001000",
+        "0001111000",
+        "0011111100",
+        "0111111110",
+        "1110110111",
+        "1111111111",
+        "0011011000",
+        "1000000001"
+      ],
+      bee2: [
+        "1001001001",
+        "0101111010",
+        "0011111100",
+        "0111111110",
+        "1110110111",
+        "1111111111",
+        "0011011000",
+        "1000000001"
+      ],
+      // Butterfly - 80 pts
+      butterfly1: [
+        "001000000100",
+        "011100000111",
+        "111111111111",
+        "110111111011",
+        "111111111111",
+        "011011110110",
+        "001100001100",
+        "010000000010"
+      ],
+      butterfly2: [
+        "100000000001",
+        "011000000110",
+        "111111111111",
+        "110111111011",
+        "111111111111",
+        "001100110011",
+        "011000000110",
+        "100000000001"
+      ],
+      // Boss with tractor beam - 150 pts
+      boss1: [
+        "00011111110000",
+        "00111111111000",
+        "01111111111100",
+        "11011111110110",
+        "11111111111111",
+        "11111111111111",
+        "00110011001100",
+        "01000000000100"
+      ],
+      boss2: [
+        "00011111110000",
+        "00111111111000",
+        "01111111111100",
+        "11011111110110",
+        "11111111111111",
+        "11111111111111",
+        "01100110011000",
+        "10000000001000"
+      ],
+      // Human fighter (captured / wingman drone mini-ship)
+      fighter: [
+        "00011000",
+        "00011000",
+        "00111100",
+        "01111110",
+        "11111111",
+        "11111111",
+        "01011010",
+        "10000001"
       ]
     };
 
@@ -465,6 +539,22 @@
         osc.stop(now + 0.36);
       }
 
+      tractorTick(phase) {
+        if (!this.enabled) return;
+        this.init();
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320 + Math.sin(phase * 26) * 130, now);
+        gain.gain.setValueAtTime(0.09, now);
+        gain.gain.exponentialRampToValueAtTime(0.005, now + 0.28);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.29);
+      }
+
       shieldCollapse() {
         if (!this.enabled) return;
         this.init();
@@ -539,6 +629,213 @@
     const platformMesh = new THREE.Mesh(platformGeo, platformMat);
     platformMesh.position.set(0, 0.02, 0);
     playerRig.add(platformMesh);
+
+    // ========================================================
+    // SCENE 1: PILOT CARRIER COCKPIT (seat, legs, dash, consoles)
+    // ========================================================
+    const cockpit = new THREE.Group();
+    playerRig.add(cockpit);
+    {
+      const hullMat = new THREE.MeshStandardMaterial({ color: 0x0d1424, roughness: 0.55, metalness: 0.6 });
+      const seatMat = new THREE.MeshStandardMaterial({ color: 0x182238, roughness: 0.75, metalness: 0.3 });
+      const suitMat = new THREE.MeshStandardMaterial({ color: 0x233350, roughness: 0.85, metalness: 0.1 });
+      const bootMat = new THREE.MeshStandardMaterial({ color: 0x101a2c, roughness: 0.9 });
+      const trimMat = new THREE.MeshBasicMaterial({ color: 0x00f5ff });
+
+      const addBox = (w, h, d, x, y, z, mat, rx = 0) => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        m.position.set(x, y, z);
+        m.rotation.x = rx;
+        cockpit.add(m);
+        return m;
+      };
+
+      // Bucket seat under & behind the pilot
+      addBox(0.66, 0.12, 0.55, 0, 1.32, 0.16, seatMat);        // seat pan
+      addBox(0.66, 0.85, 0.12, 0, 1.75, 0.47, seatMat, -0.06); // seat back
+      addBox(0.30, 0.20, 0.10, 0, 1.82, 0.52, seatMat, -0.06); // headrest
+
+      // Cockpit tub side walls (enclosed carrier feel)
+      addBox(0.10, 0.60, 1.30, -0.60, 1.28, -0.10, hullMat);
+      addBox(0.10, 0.60, 1.30, 0.60, 1.28, -0.10, hullMat);
+
+      // Dashboard across the bottom of the view
+      addBox(1.34, 0.12, 0.42, 0, 1.27, -0.64, hullMat, 0.18);
+      addBox(1.34, 0.025, 0.05, 0, 1.345, -0.55, trimMat, 0.18); // neon trim strip
+
+      // Armrest consoles the turret blasters hover over
+      addBox(0.28, 0.12, 0.34, -0.35, 1.30, -0.40, hullMat);
+      addBox(0.28, 0.12, 0.34, 0.35, 1.30, -0.40, hullMat);
+      addBox(0.20, 0.02, 0.05, -0.35, 1.365, -0.31, trimMat);
+      addBox(0.20, 0.02, 0.05, 0.35, 1.365, -0.31, trimMat);
+
+      // Pilot legs strapped in: thighs, knees peeking over the dash
+      addBox(0.17, 0.15, 0.48, -0.17, 1.42, -0.22, suitMat);
+      addBox(0.17, 0.15, 0.48, 0.17, 1.42, -0.22, suitMat);
+      addBox(0.15, 0.16, 0.16, -0.17, 1.42, -0.46, suitMat);
+      addBox(0.15, 0.16, 0.16, 0.17, 1.42, -0.46, suitMat);
+      // shins descend behind the dash into the footwell
+      addBox(0.13, 0.34, 0.13, -0.18, 1.24, -0.58, suitMat, 0.35);
+      addBox(0.13, 0.34, 0.13, 0.18, 1.24, -0.58, suitMat, 0.35);
+      addBox(0.15, 0.10, 0.30, -0.18, 1.05, -0.72, bootMat, -0.15);
+      addBox(0.15, 0.10, 0.30, 0.18, 1.05, -0.72, bootMat, -0.15);
+
+      // Harness straps across the thighs
+      addBox(0.19, 0.035, 0.03, -0.17, 1.455, -0.12, trimMat);
+      addBox(0.19, 0.035, 0.03, 0.17, 1.455, -0.12, trimMat);
+      addBox(0.19, 0.035, 0.03, -0.17, 1.455, -0.32, trimMat);
+      addBox(0.19, 0.035, 0.03, 0.17, 1.455, -0.32, trimMat);
+
+      // Footrest plate + front skirt so the footwell reads as solid
+      addBox(0.60, 0.05, 0.32, 0, 1.00, -0.78, hullMat);
+      addBox(1.30, 0.50, 0.06, 0, 0.76, -0.80, hullMat);
+    }
+
+    // Desktop-only virtual hands holding the turret remotes (hidden in VR,
+    // where your real controllers ARE the controls)
+    function createHandMesh() {
+      const hand = new THREE.Group();
+      const palm = new THREE.Mesh(
+        new THREE.BoxGeometry(0.09, 0.05, 0.12),
+        new THREE.MeshStandardMaterial({ color: 0x2a3a5e, roughness: 0.8 })
+      );
+      palm.position.set(0, -0.035, 0.02);
+      hand.add(palm);
+      const remote = new THREE.Mesh(
+        new THREE.BoxGeometry(0.055, 0.035, 0.17),
+        new THREE.MeshStandardMaterial({ color: 0x16203a, roughness: 0.4, metalness: 0.7 })
+      );
+      hand.add(remote);
+      const strip = new THREE.Mesh(
+        new THREE.BoxGeometry(0.058, 0.012, 0.10),
+        new THREE.MeshBasicMaterial({ color: 0x00f5ff })
+      );
+      strip.position.set(0, 0.022, -0.02);
+      hand.add(strip);
+      for (let f = 0; f < 3; f++) {
+        const finger = new THREE.Mesh(
+          new THREE.BoxGeometry(0.016, 0.02, 0.05),
+          new THREE.MeshStandardMaterial({ color: 0x2a3a5e, roughness: 0.8 })
+        );
+        finger.position.set(-0.03 + f * 0.03, 0.022, -0.05);
+        hand.add(finger);
+      }
+      return hand;
+    }
+
+    const desktopHandL = createHandMesh();
+    desktopHandL.position.set(-0.30, -0.26, -0.40);
+    camera.add(desktopHandL);
+
+    const desktopHandR = createHandMesh();
+    desktopHandR.position.set(0.30, -0.26, -0.40);
+    camera.add(desktopHandR);
+
+    // ========================================================
+    // HOLO STATUS CARD (bottom-right of view, rides with cockpit)
+    // ========================================================
+    const cardCanvas = document.createElement('canvas');
+    cardCanvas.width = 256;
+    cardCanvas.height = 144;
+    const cardCtx = cardCanvas.getContext('2d');
+    const cardTexture = new THREE.CanvasTexture(cardCanvas);
+    const statusCard = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.26, 0.146),
+      new THREE.MeshBasicMaterial({ map: cardTexture, transparent: true, side: THREE.DoubleSide })
+    );
+    statusCard.position.set(0.42, -0.33, -0.82);
+    statusCard.rotation.set(-0.10, -0.16, 0);
+    camera.add(statusCard);
+
+    function updateStatusCard() {
+      const w = cardCanvas.width, h = cardCanvas.height;
+      cardCtx.clearRect(0, 0, w, h);
+      cardCtx.fillStyle = 'rgba(6, 10, 24, 0.85)';
+      cardCtx.fillRect(4, 4, w - 8, h - 8);
+      cardCtx.strokeStyle = '#00f5ff';
+      cardCtx.lineWidth = 2;
+      cardCtx.strokeRect(4, 4, w - 8, h - 8);
+
+      cardCtx.font = 'bold 17px "Courier New", monospace';
+      cardCtx.textAlign = 'left';
+
+      // Hull / lives
+      cardCtx.fillStyle = '#8ea0c8';
+      cardCtx.fillText('HULL', 14, 26);
+      cardCtx.fillStyle = '#ff2a85';
+      cardCtx.fillText('♥'.repeat(Math.max(0, lives)) || '—', 70, 26);
+
+      // Wrist shield charges
+      let lE = 1, rE = 1;
+      if (renderer.xr.isPresenting) {
+        lE = vrControllers[0]?.userData.shieldEnergy ?? 1;
+        rE = vrControllers[1]?.userData.shieldEnergy ?? 1;
+      }
+      cardCtx.fillStyle = '#8ea0c8';
+      cardCtx.fillText('SHLD', 14, 48);
+      const miniBar = (x, y, e) => {
+        cardCtx.fillStyle = '#10203a';
+        cardCtx.fillRect(x, y, 62, 9);
+        cardCtx.fillStyle = e > 0.6 ? '#00f5ff' : e > 0.25 ? '#ffb800' : '#ff2a85';
+        cardCtx.fillRect(x, y, Math.max(3, 62 * e), 9);
+      };
+      miniBar(70, 39, lE);
+      miniBar(70, 52, rE);
+
+      // Earned drones
+      cardCtx.fillStyle = '#8ea0c8';
+      cardCtx.fillText('WING', 14, 78);
+      cardCtx.fillStyle = activeDrones.length ? '#39ff14' : '#44557a';
+      cardCtx.fillText(activeDrones.length ? '▲'.repeat(activeDrones.length) : 'NONE', 70, 78);
+
+      // Active power-up timers
+      cardCtx.fillStyle = '#8ea0c8';
+      cardCtx.fillText('PWR', 14, 100);
+      const pwParts = [];
+      if (activePower.auto > 0) pwParts.push(`AUTO ${Math.ceil(activePower.auto)}s`);
+      if (activePower.shield > 0) pwParts.push(`SHLD ${Math.ceil(activePower.shield)}s`);
+      cardCtx.fillStyle = '#ffb800';
+      cardCtx.fillText(pwParts.length ? pwParts.join(' ') : '—', 70, 100);
+
+      // Achievements earned this run
+      cardCtx.fillStyle = '#8ea0c8';
+      cardCtx.fillText('ACHV', 14, 124);
+      cardCtx.fillStyle = '#39ff14';
+      cardCtx.fillText(String(achievements.length).padStart(2, '0'), 70, 124);
+
+      cardTexture.needsUpdate = true;
+    }
+
+    // Carrier banking + desktop hand life
+    let rigPrevX = 0;
+    let rigBankTilt = 0;
+    let desktopHandKick = 0;
+
+    function updateCockpitDynamics(dt) {
+      // Bank the whole carrier into strafes
+      const vx = dt > 0 ? (playerRig.position.x - rigPrevX) / dt : 0;
+      rigPrevX = playerRig.position.x;
+      const targetTilt = THREE.MathUtils.clamp(-vx * 0.010, -0.07, 0.07);
+      rigBankTilt += (targetTilt - rigBankTilt) * Math.min(1, dt * 6);
+      playerRig.rotation.z = rigBankTilt;
+
+      // Virtual hands: idle sway, recoil kick on fire, lean with strafe
+      desktopHandKick = Math.max(0, desktopHandKick - dt * 0.25);
+      if (!renderer.xr.isPresenting) {
+        const t = performance.now() * 0.001;
+        const strafe = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+        desktopHandL.position.set(
+          -0.30 + strafe * 0.012,
+          -0.26 + Math.sin(t * 1.4) * 0.006 + desktopHandKick * 0.5,
+          -0.40 + desktopHandKick
+        );
+        desktopHandR.position.set(
+          0.30 + strafe * 0.012,
+          -0.26 + Math.sin(t * 1.4 + 1.2) * 0.006 + desktopHandKick * 0.5,
+          -0.40 + desktopHandKick
+        );
+      }
+    }
 
     // 3D Starfield dome
     const starCount = 900;
@@ -708,6 +1005,23 @@
       gunGroup.add(shieldMesh);
 
       gunGroup.userData.shieldMesh = shieldMesh;
+
+      // Shield energy bar (drains while Grip shield is held)
+      const ebarBg = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.16, 0.02),
+        new THREE.MeshBasicMaterial({ color: 0x10203a, side: THREE.DoubleSide })
+      );
+      ebarBg.position.set(0, 0.058, -0.02);
+      gunGroup.add(ebarBg);
+
+      const ebarFill = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.15, 0.012),
+        new THREE.MeshBasicMaterial({ color: 0x00f5ff, side: THREE.DoubleSide })
+      );
+      ebarFill.position.set(0, 0.058, -0.021);
+      gunGroup.add(ebarFill);
+
+      gunGroup.userData.energyBar = ebarFill;
       return gunGroup;
     }
 
@@ -729,6 +1043,9 @@
       ctrl.userData.gunMesh = gunMesh;
       ctrl.userData.cooldown = 0;
       ctrl.userData.shieldActive = false;
+      ctrl.userData.shieldEnergy = 1;
+      ctrl.userData.shieldLock = false;
+      ctrl.userData.autoShots = 0;
       ctrl.userData.gamepad = null;
 
       ctrl.addEventListener('connected', e => {
@@ -769,6 +1086,12 @@
       }
     }
 
+    // Wrist shield energy: holding Grip blocks bombs but drains fast;
+    // releasing recharges, and a full drain locks the shield until recharged.
+    const SHIELD_DRAIN = 0.40;  // charge per second while held (~2.5s of blocking)
+    const SHIELD_REGEN = 0.22;  // charge per second while released
+    const SHIELD_RELOCK = 0.60; // charge needed to unlock after a full drain
+
     // ========================================================
     // GAME ENTITIES: 3D BUNKERS, ALIENS, LASERS, BOMBS, DEBRIS
     // ========================================================
@@ -794,13 +1117,28 @@
     let ufoTimer = 14;
     let ufoSoundTimer = 0;
 
-    // Galaga-style assault stage (every 3rd wave)
+    // Stage types (wave cycle): invaders, invaders, galaga assault, challenge stage
     let galagaWave = false;
-    let galagaState = 'ENTRY'; // ENTRY, FORMATION
+    let challengeStage = false;
+    let challengeStats = { killed: 0, total: 0 };
+    let capturedFlag = false;
+    // Scene 1: fighter drones are EARNED by progression (not just rescue),
+    // dock at your carrier, and can be stolen by boss tractor beams.
+    const DRONE_CAP = 2;
+    let activeDrones = []; // { mesh, fireTimer, phase, side }
+    let droneProgress = { wave2: false, challenge: false };
+    let achievements = [];
+    let galagaState = 'ENTRY'; // ENTRY, FORMATION, CHALLENGE
     let galagaStageTime = 0;
     let galagaBreath = 0;
     let galagaDiveTimer = 0;
     let galagaAnimTimer = 0;
+
+    // Power-up pickups (Shield Extender / Full Auto)
+    let powerups = [];
+    const activePower = { shield: 0, auto: 0 };
+    const POWERUP_LIFETIME = 15;
+    const POWERUP_DROP_CHANCE = 0.14;
 
     // ========================================================
     // 4 VERTICAL FORCE FIELD GENERATORS (HOLOGRAPHIC ENERGY SHIELDS)
@@ -1027,13 +1365,20 @@
     function buildAlienWave(waveNum) {
       for (const a of aliens) {
         scene.remove(a.group);
+        if (a.beamMesh) scene.remove(a.beamMesh); // stray tractor beams
       }
       aliens = [];
 
-      // Every 3rd wave is a Galaga-style assault stage
-      galagaWave = waveNum % 3 === 0;
+      // Wave cycle: invaders, invaders, galaga assault, challenge stage
+      const stage = stageTypeFor(waveNum);
+      galagaWave = stage === 'galaga';
+      challengeStage = stage === 'challenge';
       if (galagaWave) {
         buildGalagaWave(waveNum);
+        return;
+      }
+      if (challengeStage) {
+        buildChallengeWave(waveNum);
         return;
       }
 
@@ -1139,18 +1484,18 @@
       const startY = 8.8;
 
       for (let r = 0; r < rows; r++) {
-        let type = 'octopus';
-        let points = 10;
-        let hexColor = 0x00f5ff;
+        let type = 'bee';
+        let points = 50;
+        let hexColor = 0xffc94a;
 
         if (r === 0) {
-          type = 'squid';
-          points = 30;
+          type = 'boss';
+          points = 150;
           hexColor = 0xff2a85;
         } else if (r === 1 || r === 2) {
-          type = 'crab';
-          points = 20;
-          hexColor = 0xffb800;
+          type = 'butterfly';
+          points = 80;
+          hexColor = 0x00f5ff;
         }
 
         const fromLeft = r % 2 === 0;
@@ -1258,6 +1603,325 @@
       }
     }
 
+    // ========================================================
+    // TRACTOR BEAM CAPTURE / RESCUE / WINGMAN DRONE
+    // ========================================================
+    function stageTypeFor(w) {
+      if (w % 4 === 3) return 'galaga';
+      if (w % 4 === 0) return 'challenge';
+      return 'invaders';
+    }
+
+    const beamGeo = new THREE.CylinderGeometry(0.35, 2.1, 6.4, 24, 1, true);
+    const beamMatBase = new THREE.MeshBasicMaterial({
+      color: 0x00f5ff,
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+
+    function launchBeamRun() {
+      // Beam runs only happen once you've earned a drone worth stealing
+      if (capturedFlag || activeDrones.length === 0) return false;
+      const bosses = aliens.filter(a => a.alive && a.state === 'formation' && a.row === 0);
+      if (bosses.length === 0) return false;
+
+      const headWorld = new THREE.Vector3();
+      camera.getWorldPosition(headWorld);
+      const a = bosses[Math.floor(Math.random() * bosses.length)];
+      // Hover directly over the player's airspace so the beam can reach them
+      const hover = new THREE.Vector3(
+        headWorld.x + (Math.random() - 0.5) * 6,
+        6.2,
+        headWorld.z - 1.2
+      );
+
+      a.state = 'beaming';
+      a.beamPhase = 'travel';
+      a.diveT = 0;
+      a.diveDur = 2.2;
+      a.divePath = [
+        a.group.position.clone(),
+        new THREE.Vector3(
+          a.group.position.x + (a.group.position.x < hover.x ? 3 : -3),
+          a.group.position.y - 0.6,
+          a.group.position.z - 2
+        ),
+        hover.clone(),
+        hover.clone()
+      ];
+      sound.diveWhoosh();
+      return true;
+    }
+
+    // ---- Earned fighter drones (Scene 1 progression) ----
+    function spawnDrone() {
+      const side = activeDrones.length === 0 ? 1 : -1;
+      const mesh = buildVoxelGroup(VOXEL_SPRITES.fighter, 0x39ff14, 0.075);
+      mesh.rotation.y = Math.PI;
+      mesh.position.set(side * 0.95, 1.05, -0.55); // starts at its carrier dock
+      playerRig.add(mesh);
+      activeDrones.push({ mesh, fireTimer: 1.2, phase: Math.random() * 6, side });
+    }
+
+    function recoverDrone() {
+      if (activeDrones.length >= DRONE_CAP) return;
+      spawnDrone();
+    }
+
+    function clearDrones() {
+      for (const d of activeDrones) playerRig.remove(d.mesh);
+      activeDrones = [];
+    }
+
+    function grantDrone() {
+      if (activeDrones.length < DRONE_CAP) {
+        spawnDrone();
+        achievements.push('WINGMAN EARNED');
+        return 'WINGMAN EARNED! YOUR FIGHTER DRONE DOCKED AT YOUR SIDE';
+      }
+      achievements.push('WINGMEN AT CAPACITY');
+      addScore(300);
+      return 'WINGMEN AT CAPACITY +300 PTS';
+    }
+
+    // Progression milestones that earn drones
+    function checkDroneMilestones() {
+      if (!droneProgress.wave2 && wave === 2) {
+        droneProgress.wave2 = true;
+        return grantDrone();
+      }
+      if (challengeStage) {
+        if (!droneProgress.challenge) {
+          droneProgress.challenge = true;
+          return grantDrone();
+        }
+        addScore(200);
+      }
+      return null;
+    }
+
+    // Drones orbit the carrier during play, return to their docks between waves
+    function updateDrones(dt) {
+      const headWorld = new THREE.Vector3();
+      camera.getWorldPosition(headWorld);
+      const playing = gameState === 'PLAYING';
+
+      for (let i = 0; i < activeDrones.length; i++) {
+        const d = activeDrones[i];
+        let target;
+
+        if (playing) {
+          d.phase += dt * 0.9;
+          const ang = d.phase + (d.side > 0 ? 0 : Math.PI);
+          target = new THREE.Vector3(
+            headWorld.x + Math.cos(ang) * 1.1 * d.side,
+            1.55 + Math.sin(d.phase * 1.6) * 0.12,
+            headWorld.z - 0.85 + Math.sin(ang) * 0.3
+          );
+
+          // Autonomous return fire at the nearest hostile
+          d.fireTimer -= dt;
+          if (d.fireTimer <= 0) {
+            d.fireTimer = 0.7;
+            const origin = new THREE.Vector3();
+            d.mesh.getWorldPosition(origin);
+            let best = null;
+            let bestDist = Infinity;
+            for (const a of aliens) {
+              if (!a.alive) continue;
+              const dist = origin.distanceTo(a.group.position);
+              if (dist < bestDist) { bestDist = dist; best = a.group.position; }
+            }
+            if (ufo) {
+              const dist = origin.distanceTo(ufo.group.position);
+              if (dist < bestDist) best = ufo.group.position;
+            }
+            if (best) {
+              spawnLaserBolt(origin, best.clone().sub(origin).normalize(), 0xffb800);
+            }
+          }
+        } else {
+          target = new THREE.Vector3(d.side * 0.95, 1.05, -0.55);
+        }
+
+        d.mesh.position.lerp(target, Math.min(1, dt * 3));
+      }
+    }
+
+    // ========================================================
+    // CHALLENGING STAGE: CHOREOGRAPHED FLY-THROUGHS, NO ENEMY FIRE
+    // ========================================================
+    function buildChallengeWave(waveNum) {
+      challengeStats = { killed: 0, total: 40 };
+      galagaState = 'CHALLENGE';
+      galagaStageTime = 0;
+      galagaBreath = 0;
+      galagaDiveTimer = 0;
+      galagaAnimTimer = 0;
+
+      const beeColor = 0xffc94a;
+      for (let s = 0; s < 5; s++) {
+        const fromLeft = s % 2 === 0;
+        const path = [
+          new THREE.Vector3(fromLeft ? -24 : 24, 7 + (s % 3) * 1.2, -26),
+          new THREE.Vector3(fromLeft ? -9 : 9, 3.2, -7.5),
+          new THREE.Vector3(fromLeft ? 7 : -7, 9.5, -12),
+          new THREE.Vector3(fromLeft ? 24 : -24, 10, -28)
+        ];
+
+        for (let i = 0; i < 8; i++) {
+          const holder = new THREE.Group();
+          const frame1 = buildVoxelGroup(VOXEL_SPRITES.bee1, beeColor, 0.11);
+          const frame2 = buildVoxelGroup(VOXEL_SPRITES.bee2, beeColor, 0.11);
+          frame2.visible = false;
+          holder.add(frame1);
+          holder.add(frame2);
+          holder.position.copy(path[0]);
+          scene.add(holder);
+
+          aliens.push({
+            row: 0,
+            col: s * 8 + i,
+            type: 'bee',
+            points: 100,
+            hexColor: beeColor,
+            group: holder,
+            frame1,
+            frame2,
+            alive: true,
+            radius: 0.72,
+            state: 'challenge',
+            challengePath: path,
+            entryDelay: s * 4.6 + i * 0.16,
+            entryDur: 5.2,
+            slotX: 0,
+            slotY: 0,
+            slotZ: 0,
+            entryPath: null,
+            diveT: 0,
+            diveDur: 3,
+            divePath: null,
+            diveShots: 0,
+            diveShotTimer: 0,
+            reentryT: 0
+          });
+        }
+      }
+
+      updateHoloScoreboard('CHALLENGING STAGE! NO ENEMY FIRE - FREE POINTS!');
+    }
+
+    function updateChallengeStage(dt) {
+      galagaStageTime += dt;
+
+      galagaAnimTimer += dt;
+      if (galagaAnimTimer >= 0.18) {
+        galagaAnimTimer = 0;
+        alienAnimFrame = 1 - alienAnimFrame;
+        for (const a of aliens) {
+          if (!a.alive) continue;
+          a.frame1.visible = alienAnimFrame === 0;
+          a.frame2.visible = alienAnimFrame === 1;
+        }
+      }
+
+      const tmp = new THREE.Vector3();
+      for (const a of aliens) {
+        if (!a.alive) continue;
+        const t = (galagaStageTime - a.entryDelay) / a.entryDur;
+        if (t >= 1) {
+          a.alive = false; // flew off screen (not a kill)
+          scene.remove(a.group);
+          continue;
+        }
+        if (t <= 0) continue;
+        bez3v(a.challengePath, t, tmp);
+        const prevX = a.group.position.x;
+        a.group.position.copy(tmp);
+        a.group.rotation.z = THREE.MathUtils.clamp((tmp.x - prevX) * 0.5, -0.55, 0.55);
+      }
+    }
+
+    // ========================================================
+    // POWER-UP PICKUPS: SHIELD EXTENDER (cyan) / FULL AUTO (green)
+    // ========================================================
+    function spawnPowerup(pos, kind) {
+      if (powerups.length >= 1) return;
+      const group = new THREE.Group();
+      const colorHex = kind === 'shield' ? 0x00f5ff : 0x39ff14;
+      const shell = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.26, 0),
+        new THREE.MeshBasicMaterial({ color: colorHex, wireframe: true })
+      );
+      const core = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.13, 0),
+        new THREE.MeshBasicMaterial({ color: colorHex })
+      );
+      group.add(shell);
+      group.add(core);
+      group.position.copy(pos);
+      scene.add(group);
+      powerups.push({ group, kind, life: POWERUP_LIFETIME, phase: Math.random() * 6 });
+    }
+
+    function updatePowerups(dt) {
+      const headWorld = new THREE.Vector3();
+      camera.getWorldPosition(headWorld);
+
+      for (let i = powerups.length - 1; i >= 0; i--) {
+        const p = powerups[i];
+        p.life -= dt;
+        p.phase += dt * 3;
+
+        // Slow homing drift toward the player (fast enough to arrive in time)
+        const dir = headWorld.clone().sub(p.group.position).normalize();
+        p.group.position.addScaledVector(dir, dt * 2.4);
+        p.group.position.y += Math.sin(p.phase) * 0.15 * dt;
+        p.group.rotation.y += dt * 2.2;
+
+        // Collected by head or either hand
+        let collected = p.life <= 0;
+        if (!collected && headWorld.distanceTo(p.group.position) < 0.6) collected = true;
+        if (!collected) {
+          for (const ctrl of vrControllers) {
+            const cpos = new THREE.Vector3();
+            ctrl.getWorldPosition(cpos);
+            if (cpos.distanceTo(p.group.position) < 0.55) { collected = true; break; }
+          }
+        }
+
+        if (collected) {
+          scene.remove(p.group);
+          powerups.splice(i, 1);
+          if (p.life > 0) {
+            if (p.kind === 'shield') {
+              activePower.shield = 30;
+              for (const c of vrControllers) c.userData.shieldEnergy = 1;
+              sound.shieldImpact();
+              updateHoloScoreboard('SHIELD EXTENDER! +30s OF LONGER-LASTING WRIST SHIELDS');
+            } else {
+              activePower.auto = 30;
+              sound.shieldImpact();
+              updateHoloScoreboard('FULL AUTO! +30s OF NON-STOP GUNFIRE');
+            }
+            pulseAllHaptics(0.5, 90);
+          }
+        }
+      }
+
+      // Tick active power-up timers
+      if (activePower.shield > 0) {
+        activePower.shield = Math.max(0, activePower.shield - dt);
+        if (activePower.shield === 0) updateHoloScoreboard('SHIELD EXTENDER EXPIRED');
+      }
+      if (activePower.auto > 0) {
+        activePower.auto = Math.max(0, activePower.auto - dt);
+        if (activePower.auto === 0) updateHoloScoreboard('FULL AUTO EXPIRED');
+      }
+    }
+
     function updateGalagaStage(dt) {
       galagaStageTime += dt;
 
@@ -1317,6 +1981,71 @@
             a.state = 'reentry';
             a.reentryT = 0;
           }
+        } else if (a.state === 'beaming') {
+          allFormed = false;
+          if (a.beamPhase === 'travel') {
+            const prevX = a.group.position.x;
+            a.diveT = Math.min(1, a.diveT + dt / a.diveDur);
+            bez3v(a.divePath, a.diveT, tmp);
+            a.group.position.copy(tmp);
+            a.group.rotation.z = THREE.MathUtils.clamp((tmp.x - prevX) * 0.5, -0.55, 0.55);
+            if (a.diveT >= 1) {
+              a.beamPhase = 'hold';
+              a.beamHold = 3.6;
+              a.beamLock = 0;
+              a.beamSoundT = 0;
+              a.beamMesh = new THREE.Mesh(beamGeo, beamMatBase.clone());
+              a.beamMesh.position.set(a.group.position.x, a.group.position.y - 3.2, a.group.position.z);
+              scene.add(a.beamMesh);
+            }
+          } else {
+            // Hovering with the tractor beam extended
+            a.beamHold -= dt;
+            a.beamSoundT -= dt;
+            if (a.beamSoundT <= 0) {
+              a.beamSoundT = 0.3;
+              sound.tractorTick(galagaStageTime);
+            }
+            a.beamMesh.material.opacity = 0.16 + 0.08 * Math.sin(galagaStageTime * 21);
+            a.beamMesh.rotation.y += dt * 1.5;
+
+            // Capture the player's fighter if they linger inside the beam
+            const headWorld = new THREE.Vector3();
+            camera.getWorldPosition(headWorld);
+            if (Math.hypot(headWorld.x - a.group.position.x, headWorld.z - a.group.position.z) < 2.0) {
+              a.beamLock += dt;
+              if (a.beamLock >= 1.0) {
+                a.beamLock = -999; // no repeat captures during this hold
+                capturedFlag = true;
+                a.hasCaptured = true;
+                sound.playerHit();
+                pulseAllHaptics(1.0, 300);
+                spawnVoxelExplosion(new THREE.Vector3(headWorld.x, 1.5, headWorld.z), 0x00f5ff, 26);
+
+                // The boss steals one of your earned drones (no life lost)
+                if (activeDrones.length > 0) {
+                  const stolen = activeDrones.pop();
+                  playerRig.remove(stolen.mesh);
+                }
+
+                // The stolen drone rides alongside the boss
+                const mini = buildVoxelGroup(VOXEL_SPRITES.fighter, 0x39ff14, 0.07);
+                mini.position.set(0.55, -0.15, 0);
+                a.group.add(mini);
+
+                updateHoloScoreboard('WINGMAN DRONE STOLEN! SHOOT THE BOSS TO RECOVER IT');
+              }
+            } else {
+              a.beamLock = 0;
+            }
+
+            if (a.beamHold <= 0) {
+              scene.remove(a.beamMesh);
+              a.beamMesh = null;
+              a.state = 'reentry';
+              a.reentryT = 0;
+            }
+          }
         } else if (a.state === 'reentry') {
           allFormed = false;
           a.reentryT = Math.min(1, a.reentryT + dt / 1.5);
@@ -1337,10 +2066,14 @@
       if (galagaState === 'FORMATION') {
         galagaBreath += dt * 2.2;
 
-        // Schedule dive attacks
+        // Schedule dive attacks (bosses sometimes run a tractor-beam capture)
         galagaDiveTimer -= dt;
         if (galagaDiveTimer <= 0) {
-          launchGalagaDivers();
+          if (!capturedFlag && Math.random() < 0.35 && launchBeamRun()) {
+            // Tractor beam run launched
+          } else {
+            launchGalagaDivers();
+          }
           galagaDiveTimer = Math.max(1.3, 3.4 - wave * 0.12) + Math.random();
         }
       }
@@ -1393,6 +2126,16 @@
       lives = 3;
       gameState = 'PLAYING';
 
+      capturedFlag = false;
+      clearDrones();
+      droneProgress = { wave2: false, challenge: false };
+      achievements = [];
+      challengeStats = { killed: 0, total: 0 };
+      for (const p of powerups) scene.remove(p.group);
+      powerups = [];
+      activePower.shield = 0;
+      activePower.auto = 0;
+
       for (const l of playerLasers) scene.remove(l.mesh);
       playerLasers = [];
       for (const b of enemyBombs) scene.remove(b.mesh);
@@ -1422,6 +2165,9 @@
       mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, -1), dirWorld.clone().normalize());
       scene.add(mesh);
 
+      // Desktop virtual hands recoil with every shot
+      desktopHandKick = Math.min(0.05, desktopHandKick + 0.028);
+
       playerLasers.push({
         mesh,
         vel: dirWorld.clone().normalize().multiplyScalar(36),
@@ -1432,7 +2178,6 @@
 
     function fireFromController(ctrl) {
       if (ctrl.userData.cooldown > 0 || gameState !== 'PLAYING') return;
-      ctrl.userData.cooldown = 0.16;
 
       const origin = new THREE.Vector3();
       const quat = new THREE.Quaternion();
@@ -1454,6 +2199,7 @@
     const aimPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 18.5);
     let desktopGunToggle = false;
     let desktopCooldown = 0;
+    let desktopAutoShots = 0;
 
     function getDesktopAimPoint() {
       raycaster.setFromCamera(mouseNDC, camera);
@@ -1512,7 +2258,6 @@
         if (stateTimer <= 0) startNewGame();
         return;
       }
-      desktopCooldown = 0.17;
       desktopGunToggle = !desktopGunToggle;
 
       updateDesktopGunOrientation();
@@ -1555,7 +2300,6 @@
         if (e.target.tagName === 'BUTTON') return;
         sound.init();
         keys.fire = true;
-        fireDesktopBlaster();
       }
     });
 
@@ -1674,22 +2418,59 @@
         const gp = ctrl.userData.gamepad;
         if (!gp) continue;
 
-        // Trigger button (buttons[0]) -> Fire (edge-triggered so it doesn't spam every frame)
+        // Trigger button (buttons[0]) -> Hold to auto-fire.
+        // Cooldown grows with every consecutive shot until the guns stall;
+        // releasing the trigger resets the ramp (Full Auto power-up stops the ramp).
         const triggerPressed = !!(gp.buttons[0] && gp.buttons[0].pressed);
-        if (triggerPressed && !ctrl.userData.triggerWasPressed) {
-          if (gameState === 'GAME_OVER') {
-            if (stateTimer <= 0) startNewGame();
-          } else {
-            fireFromController(ctrl);
+        const ud = ctrl.userData;
+        if (triggerPressed) {
+          if (!ud.triggerWasPressed) {
+            ud.autoShots = 0;
+            ud.cooldown = Math.min(ud.cooldown, 0.05);
+          }
+          if (ud.cooldown <= 0) {
+            if (gameState === 'GAME_OVER') {
+              if (stateTimer <= 0) startNewGame();
+            } else {
+              fireFromController(ctrl);
+            }
+            ud.autoShots++;
+            ud.cooldown = activePower.auto > 0
+              ? 0.16
+              : Math.min(1.4, 0.16 + ud.autoShots * 0.055);
+          }
+        } else {
+          ud.autoShots = 0;
+          ud.cooldown = Math.min(ud.cooldown, 0.06);
+        }
+        ud.triggerWasPressed = triggerPressed;
+
+        // Grip / Squeeze (buttons[1]) -> Wrist Energy Shield with limited charge.
+        // Drains while held, recharges while released; a full drain locks it
+        // until recharged (Shield Extender power-up halves the drain).
+        const gripPressed = !!(gp.buttons[1] && gp.buttons[1].pressed);
+        const drainRate = SHIELD_DRAIN * (activePower.shield > 0 ? 0.45 : 1);
+        if (gripPressed && !ud.shieldLock && ud.shieldEnergy > 0) {
+          ud.shieldActive = true;
+          ud.shieldEnergy = Math.max(0, ud.shieldEnergy - drainRate * dt);
+          if (ud.shieldEnergy <= 0) {
+            ud.shieldLock = true;
+            pulseHaptics(ctrl, 0.3, 80);
+          }
+        } else {
+          ud.shieldActive = false;
+          if (!gripPressed) {
+            ud.shieldEnergy = Math.min(1, ud.shieldEnergy + SHIELD_REGEN * dt);
+            if (ud.shieldLock && ud.shieldEnergy >= SHIELD_RELOCK) ud.shieldLock = false;
           }
         }
-        ctrl.userData.triggerWasPressed = triggerPressed;
-
-        // Grip / Squeeze button (buttons[1]) -> Deploy Wrist Energy Shield
-        const gripPressed = gp.buttons[1] && gp.buttons[1].pressed;
-        ctrl.userData.shieldActive = Boolean(gripPressed);
-        if (ctrl.userData.gunMesh?.userData?.shieldMesh) {
-          ctrl.userData.gunMesh.userData.shieldMesh.visible = Boolean(gripPressed);
+        const gunUd = ud.gunMesh?.userData;
+        if (gunUd?.shieldMesh) gunUd.shieldMesh.visible = ud.shieldActive;
+        if (gunUd?.energyBar) {
+          const e = ud.shieldEnergy;
+          gunUd.energyBar.scale.x = Math.max(0.02, e);
+          gunUd.energyBar.position.x = -(1 - e) * 0.075;
+          gunUd.energyBar.material.color.setHex(e > 0.6 ? 0x00f5ff : e > 0.25 ? 0xffb800 : 0xff2a85);
         }
 
         const handedness = ctrl.userData.handedness || (i === 0 ? 'left' : 'right');
@@ -1745,6 +2526,10 @@
     function updateGame(dt) {
       desktopCooldown = Math.max(0, desktopCooldown - dt);
 
+      // Carrier banking when strafing + desktop hand animation + status card
+      updateCockpitDynamics(dt);
+      updateStatusCard();
+
       // Update 4 Force Field Generators (spin cores, 1s hit glow decay, slow HP regeneration)
       updateForceFields(dt);
 
@@ -1768,17 +2553,39 @@
         crosshairEl.style.display = 'none';
         desktopLeftGun.visible = false;
         desktopRightGun.visible = false;
+        desktopHandL.visible = false;
+        desktopHandR.visible = false;
         pollQuestControllers(dt);
       } else {
         crosshairEl.style.display = 'block';
         desktopLeftGun.visible = true;
         desktopRightGun.visible = true;
+        desktopHandL.visible = true;
+        desktopHandR.visible = true;
         // Desktop strafe controls
         if (keys.left) playerRig.position.x -= 7.0 * dt;
         if (keys.right) playerRig.position.x += 7.0 * dt;
         playerRig.position.x = Math.max(-7.5, Math.min(7.5, playerRig.position.x));
         updateDesktopGunOrientation();
-        if (keys.fire) fireDesktopBlaster();
+        // Hold-to-fire with escalating cooldown (Full Auto power-up stops the ramp)
+        if (keys.fire) {
+          if (!keys.fireWasPressed) {
+            desktopAutoShots = 0;
+            desktopCooldown = Math.min(desktopCooldown, 0.05);
+          }
+          if (desktopCooldown <= 0) {
+            fireDesktopBlaster();
+            desktopAutoShots++;
+            desktopCooldown = activePower.auto > 0
+              ? 0.17
+              : Math.min(1.4, 0.17 + desktopAutoShots * 0.055);
+          }
+          keys.fireWasPressed = true;
+        } else {
+          keys.fireWasPressed = false;
+          desktopAutoShots = 0;
+          desktopCooldown = Math.min(desktopCooldown, 0.06);
+        }
       }
 
       if (aiTurretEnabled && gameState === 'PLAYING') {
@@ -1787,6 +2594,29 @@
 
       if (gameState === 'WAVE_CLEAR') {
         stateTimer -= dt;
+
+        // Drones return to their carrier docks between waves
+        updateDrones(dt);
+
+        // Let stray shots fly out instead of freezing mid-air
+        for (let i = playerLasers.length - 1; i >= 0; i--) {
+          const l = playerLasers[i];
+          l.life -= dt;
+          l.mesh.position.addScaledVector(l.vel, dt);
+          if (l.life <= 0) {
+            scene.remove(l.mesh);
+            playerLasers.splice(i, 1);
+          }
+        }
+        for (let i = enemyBombs.length - 1; i >= 0; i--) {
+          const b = enemyBombs[i];
+          b.mesh.position.addScaledVector(b.vel, dt);
+          if (b.mesh.position.y <= 0.1 || b.mesh.position.z > 2.0) {
+            scene.remove(b.mesh);
+            enemyBombs.splice(i, 1);
+          }
+        }
+
         if (stateTimer <= 0) {
           wave++;
           build3DBunkers(); // Restore Force Field Generators on new wave
@@ -1807,9 +2637,23 @@
       if (aliveAliens.length === 0) {
         gameState = 'WAVE_CLEAR';
         stateTimer = 2.0;
-        updateHoloScoreboard(galagaWave
-          ? `GALAGA STAGE ${wave} CLEARED! PREPARE FOR WAVE ${wave + 1}`
-          : `WAVE ${wave} CLEARED! PREPARE FOR WAVE ${wave + 1}`);
+        const milestoneBanner = checkDroneMilestones();
+        if (challengeStage) {
+          const perfect = challengeStats.killed === challengeStats.total;
+          if (perfect) addScore(1000);
+          updateHoloScoreboard(
+            `CHALLENGE RESULTS: ${challengeStats.killed}/${challengeStats.total}` +
+            (perfect ? ' - PERFECT! +1000' : '') +
+            (milestoneBanner ? ` ${milestoneBanner}` : '') +
+            ` NEXT: WAVE ${wave + 1}`
+          );
+        } else if (milestoneBanner) {
+          updateHoloScoreboard(milestoneBanner);
+        } else {
+          updateHoloScoreboard(galagaWave
+            ? `GALAGA STAGE ${wave} CLEARED! PREPARE FOR WAVE ${wave + 1}`
+            : `WAVE ${wave} CLEARED! PREPARE FOR WAVE ${wave + 1}`);
+        }
         return;
       }
 
@@ -1817,6 +2661,8 @@
 
       if (galagaWave) {
         updateGalagaStage(dt);
+      } else if (challengeStage) {
+        updateChallengeStage(dt);
       } else {
       // Dynamic 3D Alien March Cadence (Original 3D Advancing Fleet Method!)
       const stepInterval = Math.max(0.06, 0.07 + Math.pow(ratio, 1.35) * 0.68);
@@ -1866,10 +2712,18 @@
       }
       }
 
+      // Earned fighter drones orbit the carrier and return fire
+      updateDrones(dt);
+
+      // Power-up pickups drift & collection
+      if (gameState === 'PLAYING') {
+        updatePowerups(dt);
+      }
+
       // Mystery 3D UFO Flying Saucer
       if (!ufo) {
         ufoTimer -= dt;
-        if (ufoTimer <= 0 && aliveAliens.length >= 6 && !galagaWave) {
+        if (ufoTimer <= 0 && aliveAliens.length >= 6 && !galagaWave && !challengeStage) {
           const fromLeft = Math.random() < 0.5;
           const ufoGroup = buildVoxelGroup(VOXEL_SPRITES.ufo, 0xff2a85, 0.13);
           ufoGroup.position.set(fromLeft ? -16 : 16, 10.2, -17.5);
@@ -1929,10 +2783,31 @@
               a.alive = false;
               a.group.visible = false;
               scene.remove(a.group);
+              // Boss killed mid-beam: drop the tractor beam too
+              if (a.beamMesh) {
+                scene.remove(a.beamMesh);
+                a.beamMesh = null;
+              }
               sound.alienExplosion();
               spawnVoxelExplosion(a.group.position, a.hexColor, 20);
-              // Galaga rule: enemies caught in flight are worth double
-              addScore(galagaWave && a.state !== 'formation' ? a.points * 2 : a.points);
+              if (challengeStage) {
+                addScore(100);
+                challengeStats.killed++;
+              } else {
+                // Galaga rule: enemies caught in flight are worth double
+                addScore(galagaWave && a.state !== 'formation' ? a.points * 2 : a.points);
+              }
+              // Recover a stolen drone by killing its carrier boss
+              if (a.hasCaptured) {
+                a.hasCaptured = false;
+                capturedFlag = false;
+                recoverDrone();
+                updateHoloScoreboard('DRONE RECOVERED! BACK ON YOUR WING');
+              }
+              // Occasional power-up drop
+              if (Math.random() < POWERUP_DROP_CHANCE) {
+                spawnPowerup(a.group.position, Math.random() < 0.5 ? 'shield' : 'auto');
+              }
               consumed = true;
               break;
             }
@@ -1965,7 +2840,7 @@
       const fireInterval = Math.max(0.75, 2.35 - (wave - 1) * 0.22 - (1 - ratio) * 0.55);
       const maxActiveBombs = Math.min(5, 2 + Math.floor((wave - 1) / 2));
 
-      if (alienFireTimer >= fireInterval && enemyBombs.length < maxActiveBombs && (!galagaWave || galagaState === 'FORMATION')) {
+      if (alienFireTimer >= fireInterval && enemyBombs.length < maxActiveBombs && !challengeStage && (!galagaWave || galagaState === 'FORMATION')) {
         alienFireTimer = 0;
 
         // Collect bottom-most alive alien in each of the 11 columns (Galaga: formed aliens only)
